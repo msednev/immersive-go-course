@@ -36,8 +36,9 @@ func ParseCsv(r io.Reader) ([]string) {
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
+		// checking if first column has header called 'url'
 		if i == 0 && record[0] != "url" {
 			log.Fatalf("Expected column `url`, found %v", record)
 		}
