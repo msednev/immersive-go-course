@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/csv"
 	"flag"
 	"log"
 	"os"
+	"io"
 
 	"gopkg.in/gographics/imagick.v2/imagick"
 )
@@ -23,10 +25,33 @@ func (c *Converter) Grayscale(inputFilepath string, outputFilepath string) error
 	return err
 }
 
+func ParseCsv(r io.Reader) ([]string) {
+
+	reader := csv.NewReader(r)
+	reader.FieldsPerRecord = 1
+	result := make([]string, 0)
+	for i := 0;;i++ {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if i == 0 && record[0] != "url" {
+			log.Fatalf("Expected column `url`, found %v", record)
+		}
+		if i > 0 {
+			result = append(result, record[0])
+		}
+	}
+	return result
+}
+
 func main() {
 	// Accept --input and --output arguments for the images
-	inputFilepath := flag.String("input", "", "A path to an image to be processed")
-	outputFilepath := flag.String("output", "", "A path to where the processed image should be written")
+	inputFilepath := flag.String("input", "", "A path to an csv with a list of files to be processed")
+	outputFilepath := flag.String("output", "", "A path to where the csv with results should be written")
 	flag.Parse()
 
 	// Ensure that both flags were set
@@ -34,6 +59,8 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	// inputfiles := ParseCsv(csv)
 
 	// Set up imagemagick
 	imagick.Initialize()

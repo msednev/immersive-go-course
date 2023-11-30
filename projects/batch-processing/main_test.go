@@ -4,9 +4,26 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"strings"
 
 	"gopkg.in/gographics/imagick.v2/imagick"
 )
+
+func TestParseCsv(t *testing.T) {
+	r := strings.NewReader(
+		"url\nhttps://url1.com\nhttps://url2.com\nhttps://url3.com\n",
+	)
+	expected := []string{
+		"https://url1.com",
+		"https://url2.com",
+		"https://url3.com",
+	}
+	actual := ParseCsv(r)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("incorrect result, expected %v, got %v", expected, actual)
+	}
+
+}
 
 func TestGrayscaleMockError(t *testing.T) {
 	c := &Converter{
@@ -19,6 +36,7 @@ func TestGrayscaleMockError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
+
 }
 
 func TestGrayscaleMockCall(t *testing.T) {
