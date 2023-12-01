@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"io"
+	"net/http"
 
 	"gopkg.in/gographics/imagick.v2/imagick"
 )
@@ -48,6 +49,28 @@ func ParseCsv(r io.Reader) ([]string) {
 	}
 	return result
 }
+
+func DownloadImage(url string, dst io.Writer) (written int64) {
+	resp, err := http.Get(url)
+	defer resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("Bad response status: %v", resp.Status)
+	}
+
+	contentType := resp.Header.Get("content-type")
+	if contentType != "image/jpg" {
+		log.Fatalf("Bad content type %v", contentType)
+	}
+
+	written, err = io.Copy(dst, resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return written
+} 
 
 func main() {
 	// Accept --input and --output arguments for the images

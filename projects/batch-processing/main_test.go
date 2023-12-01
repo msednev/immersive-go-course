@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
-	"testing"
 	"strings"
+	"testing"
 
 	"gopkg.in/gographics/imagick.v2/imagick"
 )
@@ -23,6 +26,19 @@ func TestParseCsv(t *testing.T) {
 		t.Fatalf("incorrect result, expected %v, got %v", expected, actual)
 	}
 
+}
+
+func TestDownloadImage(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-type", "image/jpg")
+		w.Write([]byte("OK"))
+	}))
+	defer ts.Close()
+	buf := new(bytes.Buffer)
+	DownloadImage(ts.URL, buf)
+	if buf.String() != "OK" {
+		t.Fatal("")
+	}
 }
 
 func TestGrayscaleMockError(t *testing.T) {
