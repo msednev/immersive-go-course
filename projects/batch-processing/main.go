@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/google/uuid"
 	"gopkg.in/gographics/imagick.v2/imagick"
 )
 
@@ -78,8 +78,8 @@ func DownloadImage(url string, dst io.Writer) (written int64) {
 	return written
 }
 
-func UploadImage(bucket *string, filename *string) error {
-	file, err := os.Open(*filename)
+func UploadImage(bucket string, filename string) error {
+	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -88,12 +88,16 @@ func UploadImage(bucket *string, filename *string) error {
 	if err != nil {
 		return err
 	}
+	key := filepath.Base(filename)
 	uploader := s3manager.NewUploader(sess)
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: bucket,
-		Key:    filename,
+		Bucket: &bucket,
+		Key:    &key,
 		Body:   file,
 	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -108,23 +112,25 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	file, err := os.Open(*inputCsv)
-	defer file.Close()
+
+	inputCsvHandle, err := os.Open(*inputCsv)
+	defer inputCsvHandle.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	inputUrls := ParseCsv(file)
-	inputFiles := make([]string, len(inputUrls))
-	for i, url := range inputUrls {
-		filename := filepath.Join("inputs", strconv.Itoa(i) + ".jpg")
-		file, err := os.Create(filename)
-		if err != nil {
-			log.Println(err)
-		}
-		DownloadImage(url, file)
-		inputFiles[i] = filename
-		file.Close()
+
+	outputCsvHandle, err := os.Create(*outputCsv)
+	defer outputCsvHandle.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	csvWriter := csv.NewWriter(outputCsvHandle)
+	csvWriter.Write([]string{
+		"url", "input", "output", "s3url",
+	})
+
+	bucket := os.Getenv("S3_BUCKET")
 
 	// Set up imagemagick
 	imagick.Initialize()
@@ -135,14 +141,17 @@ func main() {
 		cmd: imagick.ConvertImageCommand,
 	}
 
-	// Do the conversion!
-	fmt.Println(inputFiles)
-	for _, inputFile := range inputFiles {
-		// Log what we're going to do
-		inputFileNameExt := filepath.Ext(inputFile)
-		inputFileNameBase := filepath.Base(inputFile)
-		inputFileWithoutExt := inputFileNameBase[:len(inputFileNameBase) - len(inputFileNameExt)]
-		outputFile := filepath.Join("outputs", inputFileWithoutExt + "_bw" + inputFileNameExt)
+	inputUrls := ParseCsv(inputCsvHandle)
+	for _, url := range inputUrls {
+		inputFile := filepath.Join("inputs", uuid.NewString() + ".jpg")
+		inputFileHandle, err := os.Create(inputFile)
+		if err != nil {
+			log.Println(err)
+		}
+		DownloadImage(url, inputFileHandle)
+		inputFileHandle.Close()
+
+		outputFile := filepath.Join("outputs", filepath.Base(inputFile))
 		log.Printf("processing: %q to %q\n", inputFile, outputFile)
 		err = c.Grayscale(inputFile, outputFile)
 		if err != nil {
@@ -150,5 +159,18 @@ func main() {
 		}
 		// Log what we did
 		log.Printf("processed: %q to %q\n", inputFile, outputFile)
+		err = UploadImage(bucket, outputFile)
+		if err != nil {
+			log.Printf("error: %v\n", err)
+		}
+		
+		s3url := fmt.Sprintf("https://%v.s3.eu-central-1.amazonaws.com/%v", bucket, filepath.Base(outputFile))
+		if err := csvWriter.Write([]string{url, inputFile, outputFile, s3url}); err != nil {
+			log.Fatalln("error writing record to csv:", err)
+		}
+		csvWriter.Flush()
+		if err := csvWriter.Error(); err != nil {
+			log.Fatal("err")
+		}
 	}
 }
