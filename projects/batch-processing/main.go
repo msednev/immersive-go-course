@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -101,6 +102,13 @@ func UploadImage(bucket string, filename string) error {
 	return nil
 }
 
+type Record struct {
+	url        string
+	inputFile  string
+	outputFile string
+	s3url      string
+}
+
 func main() {
 	// Accept --input and --output arguments for the csv files
 	inputCsv := flag.String("input", "", "A path to an csv with a list of files to be processed")
@@ -142,35 +150,49 @@ func main() {
 	}
 
 	inputUrls := ParseCsv(inputCsvHandle)
-	for _, url := range inputUrls {
-		inputFile := filepath.Join("inputs", uuid.NewString() + ".jpg")
-		inputFileHandle, err := os.Create(inputFile)
-		if err != nil {
-			log.Println(err)
-		}
-		DownloadImage(url, inputFileHandle)
-		inputFileHandle.Close()
+	records := make(chan Record, len(inputUrls))
+	var wg sync.WaitGroup
 
-		outputFile := filepath.Join("outputs", filepath.Base(inputFile))
-		log.Printf("processing: %q to %q\n", inputFile, outputFile)
-		err = c.Grayscale(inputFile, outputFile)
-		if err != nil {
-			log.Printf("error: %v\n", err)
-		}
-		// Log what we did
-		log.Printf("processed: %q to %q\n", inputFile, outputFile)
-		err = UploadImage(bucket, outputFile)
-		if err != nil {
-			log.Printf("error: %v\n", err)
-		}
-		
-		s3url := fmt.Sprintf("https://%v.s3.eu-central-1.amazonaws.com/%v", bucket, filepath.Base(outputFile))
-		if err := csvWriter.Write([]string{url, inputFile, outputFile, s3url}); err != nil {
+	for _, url := range inputUrls {
+		wg.Add(1)
+		go func(url string) {
+			defer wg.Done()
+			inputFile := filepath.Join("inputs", uuid.NewString()+".jpg")
+			inputFileHandle, err := os.Create(inputFile)
+			if err != nil {
+				log.Println(err)
+			}
+			DownloadImage(url, inputFileHandle)
+			inputFileHandle.Close()
+
+			outputFile := filepath.Join("outputs", filepath.Base(inputFile))
+			log.Printf("processing: %q to %q\n", inputFile, outputFile)
+			err = c.Grayscale(inputFile, outputFile)
+			if err != nil {
+				log.Printf("error: %v\n", err)
+			}
+			// Log what we did
+			log.Printf("processed: %q to %q\n", inputFile, outputFile)
+			err = UploadImage(bucket, outputFile)
+			if err != nil {
+				log.Printf("error: %v\n", err)
+			}
+			s3url := fmt.Sprintf("https://%v.s3.eu-central-1.amazonaws.com/%v", bucket, filepath.Base(outputFile))
+			records <- Record{url, inputFile, outputFile, s3url}
+		}(url)
+	}
+	wg.Wait()
+	close(records)
+
+	for record := range records {
+		if err := csvWriter.Write([]string{record.url, record.inputFile, record.outputFile, record.s3url}); err != nil {
 			log.Fatalln("error writing record to csv:", err)
 		}
-		csvWriter.Flush()
-		if err := csvWriter.Error(); err != nil {
-			log.Fatal("err")
-		}
+		fmt.Println("Writing logs...")
 	}
+	csvWriter.Flush()
+	if err := csvWriter.Error(); err != nil {
+		log.Fatal("err")
+	}
+
 }
