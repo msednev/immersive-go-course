@@ -20,14 +20,25 @@ func ListFiles(dirname string) ([]string, error) {
 	return result, nil
 }
 
-func Execute() {
-	files, err := ListFiles(".")
-
+func Execute(dirname string) error {
+	
+	fileinfo, err := os.Stat(dirname)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return err
+	}
+
+	if !fileinfo.IsDir() {
+		fmt.Println(dirname)
+		return nil
+	}
+	
+	files, err := ListFiles(dirname)
+	if err != nil {
+		return err
 	}
 
 	for _, file := range files {
 		fmt.Println(file)
 	}
+	return nil
 }
