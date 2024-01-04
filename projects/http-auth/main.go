@@ -8,9 +8,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"golang.org/x/time/rate"
 )
 
+
 func main() {
+	limiter := rate.NewLimiter(100, 30)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "GET" && len(r.URL.Query()) != 0 {
@@ -63,6 +68,15 @@ func main() {
 
 		w.Header().Set("WWW-Authenticate", `Basic realm="localhost", charset="UTF-8"`)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	})
+
+	http.HandleFunc("/limited", func(w http.ResponseWriter, r *http.Request) {
+		if limiter.Allow() {
+			w.Header().Add("Content-Type", "text/html")
+			w.Write([]byte("<!DOCTYPE html><html><em>Hello, world</em></html>"))
+		} else {
+			http.Error(w, "Too many requests", http.StatusServiceUnavailable)
+		}
 	})
 
 	http.ListenAndServe(":8080", nil)
