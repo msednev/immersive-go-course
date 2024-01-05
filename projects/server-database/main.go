@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,18 +19,37 @@ type Image struct {
 	URL     string `json:"url"`
 }
 
-// var images = []Image{
-// 	{
-// 		Title: "Sunset",
-// 		AltText: "Clouds at sunset",
-// 		URL: "https://images.unsplash.com/photo-1506815444479-bfdb1e96c566?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
-// 	},
-// 	{
-// 		Title: "Mountain",
-// 		AltText: "A mountain at sunset",
-// 		URL: "https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
-// 	},
-// }
+func fetchImages(conn *pgx.Conn) ([]Image, error) {
+	var images []Image
+	var title, url, altText string
+
+	rows, err := conn.Query(context.Background(), "SELECT title, url, alt_text FROM public.images")
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute query: %v", err)
+	}
+
+	for rows.Next() {
+		if err = rows.Scan(&title, &url, &altText); err != nil {
+			return nil, fmt.Errorf("unable to extract columns: %v", err)
+		}
+		images = append(images, Image{Title: title, URL: url, AltText: altText})
+	}
+
+	return images, nil
+	
+}
+
+func addImage(conn *pgx.Conn, image Image) error {
+	_, err := conn.Exec(
+		context.Background(),
+		"INSERT INTO public.images (title, url, alt_text) VALUES ($1, $2, $3)",
+		image.Title, image.URL, image.AltText,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to insert an entry: %v", err)
+	}
+	return nil
+}
 
 func main() {
 	connString := os.Getenv("DATABASE_URL")
@@ -50,36 +70,53 @@ func main() {
 		}
 	}()
 
-	rows, err := conn.Query(context.Background(), "SELECT title, url, alt_text FROM public.images")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to execute query: %v", err)
-		os.Exit(1)
-	}
-
-	var images []Image
-	var title, url, altText string
-
-	for rows.Next() {
-		if err = rows.Scan(&title, &url, &altText); err != nil {
-			fmt.Fprintf(os.Stderr, "unable to extract columns: %v", err)
-			os.Exit(1)
-		}
-		images = append(images, Image{Title: title, URL: url, AltText: altText})
-	}
-
 	http.HandleFunc("/images.json", func(w http.ResponseWriter, r *http.Request) {
 		queryParams := r.URL.Query()
 		indent, err := strconv.Atoi(queryParams.Get("indent"))
 		if err != nil {
 			http.Error(w, "Indent should be an integer", http.StatusBadRequest)
 		}
-		b, err := json.MarshalIndent(images, "", strings.Repeat(" ", indent))
-		if err != nil {
-			http.Error(w, "Cannot serialize object", http.StatusInternalServerError)
-		}
 
-		w.Header().Add("Content-Type", "text/json")
-		w.Write([]byte(b))
+		if r.Method == "GET" {
+			images, err := fetchImages(conn)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "unable to fetch images: %v", err)
+				os.Exit(1)
+			}
+
+			b, err := json.MarshalIndent(images, "", strings.Repeat(" ", indent))
+			if err != nil {
+				http.Error(w, "Cannot serialize object", http.StatusInternalServerError)
+			}
+
+			w.Header().Add("Content-Type", "text/json")
+			w.Write([]byte(b))
+		} else if r.Method == "POST" {
+			var image Image
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "cannot read request body: %v", err)
+				http.Error(w, "Cannot read request body", http.StatusInternalServerError)
+				return
+			}
+			if err := json.Unmarshal(body, &image); err != nil {
+				fmt.Fprintf(os.Stderr, "cannot deserialize image: %v", err)
+				http.Error(w, "Cannot deserialize image", http.StatusInternalServerError)
+				return
+			}
+			if err := addImage(conn, image); err != nil {
+				fmt.Fprintf(os.Stderr, "%v", err)
+				http.Error(w, "Database error", http.StatusInternalServerError)
+				return
+			}
+
+			b, err := json.MarshalIndent(image, "", strings.Repeat(" ", indent))
+			if err != nil {
+				http.Error(w, "Cannot serialize object", http.StatusInternalServerError)
+			}
+			w.Header().Add("Content-Type", "text/json")
+			w.Write([]byte(b))
+		}
 	})
 
 	http.ListenAndServe(":8080", nil)
