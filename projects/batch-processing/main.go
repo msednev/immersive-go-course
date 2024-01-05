@@ -68,7 +68,7 @@ func DownloadImage(url string, dst io.Writer) (written int64) {
 	}
 
 	contentType := resp.Header.Get("content-type")
-	if contentType != "image/jpeg" {
+	if contentType != "image/jpg" {
 		log.Fatalf("Bad content type %v", contentType)
 	}
 
