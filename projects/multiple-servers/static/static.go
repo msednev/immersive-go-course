@@ -2,9 +2,23 @@ package static
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"path/filepath"
 )
 
-func Run(path string, port int) {
-	fmt.Printf("path: %v\n", path)
-	fmt.Printf("port: %v\n", port)
+type Config struct {
+	Dir string
+	Port int
+}
+
+func Run(config Config) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join(config.Dir, r.URL.EscapedPath())
+		log.Println(r.Method, r.URL.EscapedPath(), path)
+		http.ServeFile(w, r, path)
+	})
+
+	return http.ListenAndServe(fmt.Sprintf(":%d", config.Port), mux)
 }
