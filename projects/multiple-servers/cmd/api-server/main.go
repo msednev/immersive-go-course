@@ -22,5 +22,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	api.Run(api.DbConfig{DbUrl: dbUrl, Port: *portPtr})
+	fmt.Fprintln(os.Stderr, api.Run(api.DbConfig{DbUrl: dbUrl, Port: *portPtr}))
 }

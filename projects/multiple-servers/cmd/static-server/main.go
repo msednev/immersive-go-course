@@ -22,5 +22,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	static.Run(static.Config{Dir: *pathPtr, Port: *portPtr})
+	fmt.Fprintln(os.Stderr, static.Run(static.Config{Dir: *pathPtr, Port: *portPtr}))
 }
