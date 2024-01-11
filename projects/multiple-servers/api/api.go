@@ -10,10 +10,9 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-
 type DbConfig struct {
 	DbUrl string
-	Port		int
+	Port  int
 }
 
 func Run(config DbConfig) error {
@@ -58,6 +57,7 @@ func Run(config DbConfig) error {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8082")
 		if _, err := w.Write(response); err != nil {
 			fmt.Fprintf(os.Stderr, "unable to write response: %v", err)
 		}
