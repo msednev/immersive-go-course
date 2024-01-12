@@ -25,7 +25,7 @@ func Run(config DbConfig) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/images.json", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.Method, r.URL.EscapedPath())
+		log.Println(r.Method, r.URL.EscapedPath())
 		indent := r.URL.Query().Get("indent")
 
 		var response []byte

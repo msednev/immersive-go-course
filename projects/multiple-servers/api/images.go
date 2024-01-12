@@ -31,6 +31,7 @@ func FetchImages(conn *pgx.Conn) ([]Image, error) {
 		}
 		images = append(images, Image{Title: title, Url: url, AltText: altText})
 	}
+	rows.Close()
 
 	return images, nil
 }
