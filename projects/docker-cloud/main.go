@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 )
 
 func run(port int) error {
@@ -19,12 +20,25 @@ func run(port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 }
 
+func getPort() (int, error) {
+	if os.Getenv("HTTP_PORT") == "" {
+		return 80, nil
+	}
+
+	port, err := strconv.Atoi(os.Getenv("HTTP_PORT"))
+	if err != nil {
+		return 0, fmt.Errorf("provide a valid port: %w", err)
+	}
+	return port, nil
+}
+
 func main() {
-	var port int
-	flag.IntVar(&port, "port", 8090, "port the server listens to")
-	flag.Parse()
-	if err := run(port); err != nil {
+	port, err := getPort()
+	if err != nil {
 		log.Fatal(err.Error())
 	}
 
+	if err := run(port); err != nil {
+		log.Fatal(err.Error())
+	}
 }
