@@ -11,7 +11,7 @@ on:
 
 defaults:
   run:
-    working-directory: docker-cloud
+    working-directory: projects/docker-cloud
 
 jobs:
 
@@ -23,8 +23,8 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version-file: "docker-cloud/go.mod"
-        cache-dependency-path: "docker-cloud/go.sum"
+        go-version-file: "projects/docker-cloud/go.mod"
+        cache-dependency-path: "projects/docker-cloud/go.sum"
         cache: true
 
     - name: Build
