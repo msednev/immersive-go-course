@@ -32,3 +32,30 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+  publish:
+    needs: build
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      # You may pin to the exact commit or the version.
+      # uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a
+    - uses: actions/checkout@v3
+    - name: "Configure AWS Credentials"
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        # AWS Region, e.g. us-east-2
+        aws-region: us-east-1
+        # The Amazon Resource Name (ARN) of the role to assume. Use the provided credentials to assume an IAM role and configure the Actions environment with the assumed role credentials rather than with the provided credentials.
+        role-to-assume: arn:aws:iam::244180675614:role/GitHubActionECRPublicPushImage
+    - name: Amazon ECR "Login" Action for GitHub Actions
+      env:
+        REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+        REGISTRY_ALIAS: k7p5c2t9
+        REPOSITORY: msednev/docker-cloud
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+        docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+        
