@@ -14,7 +14,7 @@ func run(port int) error {
 		w.Write([]byte("Hello, World."))
 	})
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
+		w.Write([]byte("Hello!"))
 	})
 	log.Printf("Listening on %d", port)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
