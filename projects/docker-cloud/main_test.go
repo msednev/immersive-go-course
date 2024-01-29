@@ -63,7 +63,7 @@ func TestPing(t *testing.T) {
 		t.Fatalf("error reading response body: %s", err)
 	}
 
-	want := "pong"
+	want := "Hello!"
 	if got := string(body); want != got {
 		t.Fatalf("bad response: wanted %s, got %s", want, got)
 	}
