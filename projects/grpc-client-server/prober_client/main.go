@@ -16,7 +16,13 @@ var (
 )
 
 func main() {
+	var endpoint string
+	var n int64
+
+	flag.StringVar(&endpoint, "endpoint", "http://www.google.com", "endpoint to make request to")
+	flag.Int64Var(&n, "n", 1, "number of requests")
 	flag.Parse()
+
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -30,9 +36,9 @@ func main() {
 
 	// TODO: endpoint should be a flag
 	// TODO: add number of times to probe
-	r, err := c.DoProbes(ctx, &pb.ProbeRequest{Endpoint: "http://www.google.com"})
+	r, err := c.DoProbes(ctx, &pb.ProbeRequest{Endpoint: endpoint, NRequests: n})
 	if err != nil {
 		log.Fatalf("could not probe: %v", err)
 	}
-	log.Printf("Response Time: %f", r.GetLatencyMsecs())
+	log.Printf("Response Time: %f", r.GetMeanLatencyMsecs())
 }
