@@ -40,5 +40,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not probe: %v", err)
 	}
-	log.Printf("Response Time: %f", r.GetMeanLatencyMsecs())
+	log.Printf("Average Response Time: %f", r.GetMeanLatencyMsecs())
 }
