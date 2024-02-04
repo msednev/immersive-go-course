@@ -27,7 +27,13 @@ func (s *server) DoProbes(ctx context.Context, in *pb.ProbeRequest) (*pb.ProbeRe
 	var sumElapsedMsecs float32 = 0.0
 	for i := 0; i < int(in.GetNRequests()); i++ {
 		start := time.Now()
-		_, _ = http.Get(in.GetEndpoint())	// TODO: add error handling here and check the response code
+		resp, err := http.Get(in.GetEndpoint())	// TODO: add error handling here and check the response code
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("non-ok response status")
+		}
 		elapsed := time.Since(start)
 		sumElapsedMsecs += float32(elapsed / time.Millisecond)
 	}
