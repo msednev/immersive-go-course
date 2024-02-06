@@ -26,3 +26,14 @@ func TestTagsTrim(t *testing.T) {
 		t.Fatalf("expected %v, got %v", expected, tags)
 	}
 }
+
+func TestTagsUpperCase(t *testing.T) {
+	text := "#Monday Remember to #Take time for self-care"
+	expected := []string{"Monday", "Take"}
+
+	tags := extractTags(text)
+
+	if !reflect.DeepEqual(expected, tags) {
+		t.Fatalf("expected %v, got %v", expected, tags)
+	}
+}
