@@ -77,7 +77,7 @@ func GetNoteById(ctx context.Context, conn dbConn, id string) (Note, error) {
 // Extract tags from the note. We're looking for #something. There could be
 // multiple tags, so we FindAll.
 func extractTags(input string) []string {
-	re := regexp.MustCompile(`#([^#]+)`)
+	re := regexp.MustCompile(`#([^# ]+)`)
 	matches := re.FindAllStringSubmatch(input, -1)
 	tags := make([]string, 0, len(matches))
 	for _, f := range matches {
