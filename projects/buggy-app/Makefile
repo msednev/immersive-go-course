@@ -31,7 +31,7 @@ protoc: auth/service/auth.proto
 ## TEST
 ##
 
-test: volumes
+test: volumes migrate
 	@# If it doesn't build, we want to know ASAP
 	go build ./...
 	docker compose --profile test build
