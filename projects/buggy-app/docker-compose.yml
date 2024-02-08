@@ -57,6 +57,26 @@ services:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
     command: /out/auth
 
+  auth-debug:
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    ports:
+      - "127.0.0.1:8080:80"
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      - postgres
+    volumes:
+      # Secrets (passwords etc.)
+      - type: bind
+        source: volumes/secrets
+        target: /run/secrets
+        read_only: true
+    environment:
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
+    command: /go-bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/auth
+    profiles: ["debug"]
+
   api:
     build: .
     ports:
@@ -73,6 +93,27 @@ services:
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
     command: /out/api
+
+  api-debug:
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    ports:
+      - "127.0.0.1:8090:80"
+      - "127.0.0.1:4001:4000"
+    depends_on:
+      - postgres
+      - auth-debug
+    volumes:
+      # Secrets (passwords etc.)
+      - type: bind
+        source: volumes/secrets
+        target: /run/secrets
+        read_only: true
+    environment:
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
+    command: /go-bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/api
+    profiles: ["debug"]
 
   test:
     build: .

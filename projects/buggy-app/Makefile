@@ -47,12 +47,20 @@ build: volumes
 	go build ./...
 	docker compose --profile run build
 
+build-debug: volumes
+	@# If it doesn't build, we want to know ASAP
+	go build ./...
+	docker compose --profile debug build
+
 migrate: volumes
 	docker compose --profile migrate build
 	docker compose run migrate
 
 run:
 	docker compose --profile run up
+
+run-debug:
+	docker compose --profile debug up
 
 run-database:
 	docker compose up
