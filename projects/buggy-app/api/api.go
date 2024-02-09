@@ -128,7 +128,7 @@ func (as *Service) handleMyNoteById(w http.ResponseWriter, r *http.Request) {
 // rather than running the whole server.
 func (as *Service) Handler() http.Handler {
 	mux := new(http.ServeMux)
-	mux.HandleFunc("/1/my/note/", as.wrapAuth(as.authClient, as.handleMyNoteById))
+	mux.HandleFunc("/1/my/notes/", as.wrapAuth(as.authClient, as.handleMyNoteById))
 	mux.HandleFunc("/1/my/notes.json", as.wrapAuth(as.authClient, as.handleMyNotes))
 	return httplogger.HTTPLogger(mux)
 }
