@@ -56,6 +56,7 @@ services:
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
     command: /out/auth
+    profiles: ["run", "api-debug"]
 
   auth-debug:
     build:
@@ -74,8 +75,8 @@ services:
         read_only: true
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
-    command: /go-bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/auth
-    profiles: ["debug"]
+    command: /go/bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/auth
+    profiles: ["auth-debug"]
 
   api:
     build: .
@@ -93,6 +94,7 @@ services:
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
     command: /out/api
+    profiles: ["run", "auth-debug"]
 
   api-debug:
     build:
@@ -100,10 +102,10 @@ services:
       dockerfile: Dockerfile.debug
     ports:
       - "127.0.0.1:8090:80"
-      - "127.0.0.1:4001:4000"
+      - "127.0.0.1:4000:4000"
     depends_on:
       - postgres
-      - auth-debug
+      - auth
     volumes:
       # Secrets (passwords etc.)
       - type: bind
@@ -112,8 +114,8 @@ services:
         read_only: true
     environment:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres-passwd
-    command: /go-bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/api
-    profiles: ["debug"]
+    command: /go/bin/dlv --listen=':4000' --headless=true --log=true --accept-multiclient --api-version=2 exec /out/api
+    profiles: ["api-debug"]
 
   test:
     build: .

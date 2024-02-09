@@ -20,7 +20,7 @@ COPY migrations ./migrations
 COPY util ./util
 
 RUN mkdir -p /out
-RUN CGO_ENABLED=0 go install -ldflags "-s -w -extflags '-static'" github.com/go-delve/delve/cmd/dlv@latest
+RUN CGO_ENABLED=0 go install -ldflags "-s -w -extldflags '-static'" github.com/go-delve/delve/cmd/dlv@latest
 RUN CGO_ENABLED=0 go build -gcflags "all=-N -l" -o /out ./...
 
 COPY bin /bin

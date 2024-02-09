@@ -59,8 +59,11 @@ migrate: volumes
 run:
 	docker compose --profile run up
 
-run-debug:
-	docker compose --profile debug up
+run-api-debug:
+	docker compose --profile api-debug up
+
+run-auth-debug:
+	docker compose --profile auth-debug up
 
 run-database:
 	docker compose up
