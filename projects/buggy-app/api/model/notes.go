@@ -58,13 +58,17 @@ func GetNotesForOwner(ctx context.Context, conn dbConn, owner string) (Notes, er
 	return notes, nil
 }
 
-func GetNoteById(ctx context.Context, conn dbConn, id string) (Note, error) {
+func GetNoteByIdForOwner(ctx context.Context, conn dbConn, id string, owner string) (Note, error) {
 	var note Note
 	if id == "" {
 		return note, errors.New("model: id not supplied")
 	}
 
-	row := conn.QueryRow(ctx, "SELECT id, owner, content, created, modified FROM public.note WHERE id = $1", id)
+	if owner == "" {
+		return note, errors.New("model: owner not supplied")
+	}
+
+	row := conn.QueryRow(ctx, "SELECT id, owner, content, created, modified FROM public.note WHERE id = $1 AND owner = $2", id, owner)
 
 	err := row.Scan(&note.Id, &note.Owner, &note.Content, &note.Created, &note.Modified)
 	if err != nil {

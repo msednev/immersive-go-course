@@ -310,9 +310,9 @@ func TestMyNoteById(t *testing.T) {
 	rows := mock.NewRows([]string{"id", "owner", "content", "created", "modified"}).
 		AddRow(noteId, id, content, created, modified)
 
-	mock.ExpectQuery("^SELECT (.+) FROM public.note WHERE id = (.+)$").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT (.+) FROM public.note WHERE id = (.+) AND owner = (.+)$").WillReturnRows(rows)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("/1/my/note/%s.json", noteId), strings.NewReader(""))
+	req, err := http.NewRequest("GET", fmt.Sprintf("/1/my/notes/%s.json", noteId), strings.NewReader(""))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -353,9 +353,9 @@ func TestMyNoteByIdWithTags(t *testing.T) {
 	rows := mock.NewRows([]string{"id", "owner", "content", "created", "modified"}).
 		AddRow(noteId, id, content, created, modified)
 
-	mock.ExpectQuery("^SELECT (.+) FROM public.note WHERE id = (.+)$").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT (.+) FROM public.note WHERE id = (.+) AND owner = (.+)$").WillReturnRows(rows)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("/1/my/note/%s.json", noteId), strings.NewReader(""))
+	req, err := http.NewRequest("GET", fmt.Sprintf("/1/my/notes/%s.json", noteId), strings.NewReader(""))
 	if err != nil {
 		log.Fatal(err)
 	}
