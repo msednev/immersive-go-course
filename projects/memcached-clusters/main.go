@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
@@ -62,8 +63,8 @@ func main() {
 		go func(client *memcache.Client) {
 			defer wg.Done()
 			item, err := client.Get(key)
-			if err != nil {
-				log.Fatalf("cannot retrieve item: %v", err)
+			if errors.Is(err, memcache.ErrCacheMiss) {
+				return
 			}
 			values <- item.Value
 		}(client)
@@ -71,12 +72,19 @@ func main() {
 	wg.Wait()
 	close(values)
 
+	// only one node contains the key
+	if len(values) == 1 {
+		fmt.Println("the caches operate in sharded mode")
+		return
+	}
+
+	// all nodes contain the key
 	for el := range values {
-		if !reflect.DeepEqual([]byte(value), el) {
-			fmt.Println("the caches operate in sharded mode")
+		if reflect.DeepEqual([]byte(value), el) {
+			fmt.Println("the caches operate in replicated mode")
 			return
 		}
 	}
 
-	fmt.Println("the caches operate in replicated mode")
+	fmt.Println("unable to determine cache mode")
 }
