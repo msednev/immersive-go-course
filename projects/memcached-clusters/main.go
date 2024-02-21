@@ -49,7 +49,7 @@ func main() {
 	const key = "mykey"
 	const value = "my data"
 
-	if err := mcrouterClient.Set(&memcache.Item{Key: key, Value: []byte(value)}); err == nil {
+	if err := mcrouterClient.Set(&memcache.Item{Key: key, Value: []byte(value)}); err != nil {
 		log.Fatalf("failed to set key: %v", err)
 	}
 
