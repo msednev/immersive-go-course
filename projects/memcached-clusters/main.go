@@ -63,7 +63,7 @@ func main() {
 			defer wg.Done()
 			item, err := client.Get(key)
 			if err != nil {
-				log.Printf("cannot retrieve item: %v", err)
+				log.Fatalf("cannot retrieve item: %v", err)
 			}
 			values <- item.Value
 		}(client)
