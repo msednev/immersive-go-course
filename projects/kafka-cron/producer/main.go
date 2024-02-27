@@ -34,7 +34,7 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 			return nil, fmt.Errorf("failed to parse \"%s\"", line)
 		}
 		cronExpr := line[:lastInd]
-		command := line[lastInd:]
+		command := line[lastInd+1:]
 		sched, err := parser.Parse(cronExpr)
 		if err != nil {
 			return nil, err
