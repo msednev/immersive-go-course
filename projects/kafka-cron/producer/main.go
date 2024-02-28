@@ -9,7 +9,6 @@ import (
 )
 
 type CronSpec struct {
-	Second uint64 `json:"second,omitempty"`
 	Minute uint64 `json:"minute,omitempty"`
 	Hour   uint64 `json:"hour,omitempty"`
 	Dom    uint64 `json:"dom,omitempty"`
@@ -24,7 +23,7 @@ type Job struct {
 
 func parseCronFile(reader io.Reader) ([]Job, error) {
 	var jobs []Job
-	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
@@ -46,7 +45,6 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 		job := Job{
 			Command: command,
 			CronSpec: CronSpec{
-				specShed.Second,
 				specShed.Minute,
 				specShed.Hour,
 				specShed.Dom,
