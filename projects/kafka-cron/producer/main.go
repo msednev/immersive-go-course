@@ -2,9 +2,13 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/robfig/cron/v3"
 	"io"
+	"log"
+	"os"
 	"strings"
 )
 
@@ -58,5 +62,47 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 }
 
 func main() {
-
+	topic := "cron"
+	if len(os.Args) != 2 {
+		log.Fatalf("expected one command-line argument, got %d", len(os.Args)-1)
+	}
+	cronFileHandle, err := os.Open(os.Args[1])
+	if err != nil {
+		log.Fatalf("cannot open file: %v", err)
+	}
+	jobs, err := parseCronFile(cronFileHandle)
+	if err != nil {
+		log.Fatalf("cannot parse provided file: %v", err)
+	}
+	msg, err := json.Marshal(jobs)
+	if err != nil {
+		log.Fatalf("cannot serialize cron jobs: %v", err)
+	}
+	hostname, _ := os.Hostname()
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": "localhost:9092",
+		"client.id":         hostname,
+		"acks":              "all",
+	})
+	if err != nil {
+		log.Fatalf("failed to create producer: %v", err)
+	}
+	deliveryChan := make(chan kafka.Event, 100)
+	err = producer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value:          msg,
+	}, deliveryChan)
+	go func() {
+		for e := range producer.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					fmt.Printf("failed to deliver message: %v\n", ev.TopicPartition)
+				} else {
+					fmt.Printf("successfully produced record to topic %s partition [%d] @ offset %v\n",
+						ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset)
+				}
+			}
+		}
+	}()
 }
