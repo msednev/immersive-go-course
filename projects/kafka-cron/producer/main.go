@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -10,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type CronSpec struct {
@@ -59,6 +61,40 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
+}
+
+func createTopic(p *kafka.Producer, topic string) {
+	a, err := kafka.NewAdminClientFromProducer(p)
+	if err != nil {
+		log.Fatalf("Failed to create new admin client from producer: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	maxDur, err := time.ParseDuration("60s")
+	if err != nil {
+		log.Fatalf("ParseDuration(60s): %v", err)
+	}
+	results, err := a.CreateTopics(
+		ctx,
+		[]kafka.TopicSpecification{{
+			Topic:             topic,
+			NumPartitions:     1,
+			ReplicationFactor: 3,
+		}},
+		kafka.SetAdminOperationTimeout(maxDur),
+	)
+	if err != nil {
+		log.Fatalf("Admin Client request error: %v", err)
+	}
+	for _, result := range results {
+		if result.Error.Code() != kafka.ErrNoError && result.Error.Code() != kafka.ErrTopicAlreadyExists {
+			log.Fatalf("Failed to create topic: %v", result.Error)
+		}
+		fmt.Printf("%v\n", result)
+	}
+	a.Close()
 }
 
 func main() {
