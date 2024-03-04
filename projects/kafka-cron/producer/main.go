@@ -138,7 +138,7 @@ func main() {
 					fmt.Printf("failed to deliver message: %v\n", ev.TopicPartition)
 				} else {
 					fmt.Printf("successfully produced record to topic %s partition [%d] @ offset %v\n",
-						ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset)
+						*ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset)
 				}
 			}
 		}
