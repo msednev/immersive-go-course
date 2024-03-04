@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -27,6 +26,19 @@ type Job struct {
 	CronSpec
 }
 
+func indexByteN(s string, c byte, n int) int {
+	count := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			count++
+		}
+		if count == n {
+			return i
+		}
+	}
+	return -1
+}
+
 func parseCronFile(reader io.Reader) ([]Job, error) {
 	var jobs []Job
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
@@ -34,12 +46,12 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		line := scanner.Text()
-		lastInd := strings.LastIndex(line, " ")
-		if lastInd == -1 {
+		splitPos := indexByteN(line, ' ', 5)
+		if splitPos == -1 {
 			return nil, fmt.Errorf("failed to parse \"%s\"", line)
 		}
-		cronExpr := line[:lastInd]
-		command := line[lastInd+1:]
+		cronExpr := line[:splitPos]
+		command := line[splitPos+1:]
 		sched, err := parser.Parse(cronExpr)
 		if err != nil {
 			return nil, err
@@ -80,8 +92,8 @@ func createTopic(p *kafka.Producer, topic string) {
 		ctx,
 		[]kafka.TopicSpecification{{
 			Topic:             topic,
-			NumPartitions:     1,
-			ReplicationFactor: 3,
+			NumPartitions:     2,
+			ReplicationFactor: 1,
 		}},
 		kafka.SetAdminOperationTimeout(maxDur),
 	)

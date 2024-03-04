@@ -34,3 +34,11 @@ func TestParseCronFile(t *testing.T) {
 		})
 	}
 }
+
+func TestIndexByteN(t *testing.T) {
+	expected := 9
+	got := indexByteN("* * * * * /bin/echo", ' ', 5)
+	if got != expected {
+		t.Errorf("got %v, expected %v", got, expected)
+	}
+}
