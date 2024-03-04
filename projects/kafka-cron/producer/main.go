@@ -110,10 +110,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot parse provided file: %v", err)
 	}
-	msg, err := json.Marshal(jobs)
-	if err != nil {
-		log.Fatalf("cannot serialize cron jobs: %v", err)
-	}
 	hostname, _ := os.Hostname()
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost:9092",
@@ -123,11 +119,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create producer: %v", err)
 	}
-	deliveryChan := make(chan kafka.Event, 100)
-	err = producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          msg,
-	}, deliveryChan)
+	createTopic(producer, topic)
+	for job := range jobs {
+		msg, err := json.Marshal(job)
+		if err != nil {
+			log.Fatalf("cannot serialize cron jobs: %v", err)
+		}
+		err = producer.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Value:          msg,
+		}, nil)
+	}
 	go func() {
 		for e := range producer.Events() {
 			switch ev := e.(type) {
