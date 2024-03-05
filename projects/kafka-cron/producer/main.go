@@ -22,7 +22,8 @@ type CronSpec struct {
 }
 
 type Job struct {
-	Command string `json:"command,omitempty"`
+	Command   string    `json:"command,omitempty"`
+	StartTime time.Time `json:"start_time,omitempty"`
 	CronSpec
 }
 
@@ -61,7 +62,8 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 			return nil, fmt.Errorf("type assertion failed")
 		}
 		job := Job{
-			Command: command,
+			Command:   command,
+			StartTime: sched.Next(time.Now()),
 			CronSpec: CronSpec{
 				specShed.Minute,
 				specShed.Hour,
