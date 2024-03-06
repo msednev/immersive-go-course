@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 	"io"
 	"log"
@@ -142,6 +143,7 @@ func main() {
 		err = producer.Produce(&kafka.Message{
 			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 			Value:          msg,
+			Key:            []byte(uuid.New().String()),
 		}, nil)
 	}
 	go func() {
