@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"log"
+	"os/exec"
 	"time"
 )
 
@@ -21,11 +23,19 @@ func main() {
 	}
 
 	for {
+		var job Job
 		msg, err := c.ReadMessage(time.Second)
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 		} else if !err.(kafka.Error).IsTimeout() {
 			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+		}
+		if err := json.Unmarshal(msg.Value, &job); err != nil {
+			fmt.Printf("Cannot deserialize message: %v", msg.Value)
+		}
+		cmd := exec.Command(job.Command)
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Cannot execute command: %v", err)
 		}
 	}
 	c.Close()
