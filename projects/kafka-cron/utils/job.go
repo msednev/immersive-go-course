@@ -1,4 +1,4 @@
-package main
+package utils
 
 type Job struct {
 	Command string   `json:"command,omitempty"`
