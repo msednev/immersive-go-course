@@ -16,6 +16,7 @@ func main() {
 		"group.id":          "myGroup",
 		"auto.offset.reset": "earliest",
 	})
+	defer c.Close()
 	if err != nil {
 		log.Fatalf("cannot create a new consumer: %v", err)
 	}
@@ -30,6 +31,9 @@ func main() {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 		} else if !err.(kafka.Error).IsTimeout() {
 			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+		} else {
+			fmt.Println(err)
+			continue
 		}
 		if err := json.Unmarshal(msg.Value, &job); err != nil {
 			fmt.Printf("Cannot deserialize message: %v", msg.Value)
@@ -39,5 +43,4 @@ func main() {
 			fmt.Printf("Cannot execute command: %v", err)
 		}
 	}
-	c.Close()
 }
