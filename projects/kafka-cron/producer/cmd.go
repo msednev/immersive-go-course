@@ -144,4 +144,5 @@ func main() {
 			}
 		}
 	}()
+	fmt.Scanln()
 }
