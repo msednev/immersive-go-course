@@ -12,7 +12,6 @@ import (
 	. "kafka-cron/utils"
 	"log"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -31,7 +30,6 @@ func indexByteN(s string, c byte, n int) int {
 
 func parseCronFile(reader io.Reader) ([]Job, error) {
 	var jobs []Job
-	var args []string
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
@@ -41,14 +39,9 @@ func parseCronFile(reader io.Reader) ([]Job, error) {
 			return nil, fmt.Errorf("failed to parse \"%s\"", line)
 		}
 		spec := line[:splitPos]
-		cmdAndArgs := strings.Split(line[splitPos+1:], " ")
-		cmd := cmdAndArgs[0]
-		if len(cmdAndArgs) > 1 {
-			args = cmdAndArgs[1:]
-		}
+		command := line[splitPos+1:]
 		job := Job{
-			Command: cmd,
-			Args:    args,
+			Command: command,
 			Spec:    spec,
 		}
 		jobs = append(jobs, job)
@@ -105,7 +98,7 @@ func main() {
 	}
 	hostname, _ := os.Hostname()
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost:9092",
+		"bootstrap.servers": "kafka1:19092",
 		"client.id":         hostname,
 		"acks":              "all",
 	})
@@ -131,18 +124,15 @@ func main() {
 	}
 	cronRunner.Start()
 
-	go func() {
-		for e := range producer.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					fmt.Printf("failed to deliver message: %v\n", ev.TopicPartition)
-				} else {
-					fmt.Printf("successfully produced record to topic %s partition [%d] @ offset %v\n",
-						*ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset)
-				}
+	for e := range producer.Events() {
+		switch ev := e.(type) {
+		case *kafka.Message:
+			if ev.TopicPartition.Error != nil {
+				fmt.Printf("failed to deliver message: %v\n", ev.TopicPartition)
+			} else {
+				fmt.Printf("successfully produced record to topic %s partition [%d] @ offset %v\n",
+					*ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset)
 			}
 		}
-	}()
-	fmt.Scanln()
+	}
 }

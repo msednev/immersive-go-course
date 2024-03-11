@@ -12,7 +12,7 @@ import (
 
 func main() {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost",
+		"bootstrap.servers": "kafka1:19092",
 		"group.id":          "myGroup",
 		"auto.offset.reset": "earliest",
 	})
@@ -26,7 +26,7 @@ func main() {
 
 	for {
 		var job Job
-		msg, err := c.ReadMessage(time.Second)
+		msg, err := c.ReadMessage(30 * time.Second)
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
 		} else if !err.(kafka.Error).IsTimeout() {
@@ -36,11 +36,11 @@ func main() {
 			continue
 		}
 		if err := json.Unmarshal(msg.Value, &job); err != nil {
-			fmt.Printf("Cannot deserialize message: %v", msg.Value)
+			fmt.Printf("Cannot deserialize message: %v\n", msg.Value)
 		}
-		cmd := exec.Command(job.Command)
+		cmd := exec.Command("sh", "-c", job.Command)
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("Cannot execute command: %v", err)
+			fmt.Printf("Cannot execute command %v: %v\n", cmd, err)
 		}
 	}
 }
