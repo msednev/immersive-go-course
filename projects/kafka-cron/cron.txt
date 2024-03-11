@@ -1,1 +1,4 @@
-* * * * * /bin/echo test
+* * * * * /usr/bin/echo task1 >> /output.txt; /usr/bin/sleep 20
+* * * * * /usr/bin/echo task2 >> /output.txt; /usr/bin/sleep 40
+* * * * * /usr/bin/echo task3 >> /output.txt; /usr/bin/sleep 60
+* * * * * /usr/bin/echo task4 >> /output.txt; /usr/bin/sleep 80

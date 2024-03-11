@@ -1,4 +1,4 @@
-version: '2.1'
+version: '3.4'
 
 services:
   zoo1:
@@ -36,3 +36,38 @@ services:
       KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
     depends_on:
       - zoo1
+    healthcheck:
+      test: ["CMD", "ping", "-c", "1", "kafka1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  producer1:
+    build:
+      context: .
+      target: producer
+    hostname: producer1
+    container_name: producer1
+    depends_on:
+      kafka1:
+        condition: service_healthy
+
+  consumer1:
+    build:
+      context: .
+      target: consumer
+    hostname: consumer1
+    container_name: consumer1
+    depends_on:
+      kafka1:
+        condition: service_healthy
+
+  consumer2:
+    build:
+      context: .
+      target: consumer
+    hostname: consumer2
+    container_name: consumer2
+    depends_on:
+      kafka1:
+        condition: service_healthy
